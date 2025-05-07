@@ -11,67 +11,6 @@ from backend.rfp_processor import RFPProcessor
 
 st.set_page_config(page_title="SMARTFILL AI", layout="wide")
 
-# Add this at the top with other callback functions
-def show_email_form():
-    st.session_state.email_stage = "input"
-    st.session_state.recipient_email = ""  # Reset email input
-
-def hide_email_form():
-    st.session_state.email_stage = "hidden"
-
-# Add email handling function at the top level
-def handle_email_section(col, filename):
-    # Initialize email state
-    if 'email_stage' not in st.session_state:
-        st.session_state.email_stage = "hidden"
-    if 'email_input' not in st.session_state:
-        st.session_state.email_input = ""
-
-    # Show main email button
-    if st.session_state.email_stage == "hidden":
-        if col.button("✉️ Send via Email"):
-            st.session_state.email_stage = "input"
-            st.rerun()
-
-    # Show email input and actions
-    if st.session_state.email_stage == "input":
-        col.markdown("#### ✉️ Email Export")
-        
-        st.session_state.email_input = col.text_input(
-            "📧 Enter recipient's email",
-            value=st.session_state.email_input
-        )
-
-        send_col1, send_col2 = col.columns([1, 3])
-        with send_col1:
-            if col.button("📨 Send Email Now"):
-                if st.session_state.email_input.strip():
-                    try:
-                        from backend.utils import send_email
-                        success, message = send_email(
-                            recipient_email=st.session_state.email_input,
-                            subject="SMARTFILL AI - RFP Responses",
-                            body="Attached are the SMARTFILL AI generated RFP responses.",
-                            attachment_path=filename
-                        )
-                        if success:
-                            col.success("✅ Email sent successfully!")
-                            st.session_state.email_stage = "hidden"
-                            st.session_state.email_input = ""
-                            st.rerun()
-                        else:
-                            col.error(f"❌ Failed to send email: {message}")
-                    except Exception as e:
-                        col.error(f"❌ Error sending email: {str(e)}")
-                else:
-                    col.warning("⚠️ Please enter a valid recipient email address")
-
-        with send_col2:
-            if col.button("❌ Cancel"):
-                st.session_state.email_stage = "hidden"
-                st.session_state.email_input = ""
-                st.rerun()
-
 # Initialize session state
 if 'rag' not in st.session_state:
     st.session_state.rag = RAGEngine(layout_aware=True)
@@ -97,10 +36,52 @@ if 'export_status' not in st.session_state:
     }
 if 'document_generated' not in st.session_state:
     st.session_state.document_generated = False
-if 'email_stage' not in st.session_state:
-    st.session_state.email_stage = "hidden"
-if 'recipient_email' not in st.session_state:
-    st.session_state.recipient_email = ""
+
+# Critical fix: Initialize proper email state variables
+if 'email_form_visible' not in st.session_state:
+    st.session_state.email_form_visible = False
+if 'email_recipient' not in st.session_state:
+    st.session_state.email_recipient = ""
+if 'current_doc_filename' not in st.session_state:
+    st.session_state.current_doc_filename = None
+if 'email_success' not in st.session_state:
+    st.session_state.email_success = False
+if 'email_success_message' not in st.session_state:
+    st.session_state.email_success_message = ""
+
+# Define callbacks for email functionality
+def show_email_form():
+    st.session_state.email_form_visible = True
+    st.session_state.email_success = False  # Reset success state when showing form
+
+def hide_email_form():
+    st.session_state.email_form_visible = False
+
+def set_email_success(message):
+    st.session_state.email_success = True
+    st.session_state.email_success_message = message
+    # Hide the form after 3 seconds
+    time.sleep(3)
+    st.session_state.email_form_visible = False
+
+def send_email_now(recipient, filename):
+    if recipient.strip():
+        try:
+            from backend.utils import send_email
+            success, message = send_email(
+                recipient_email=recipient,
+                subject="SMARTFILL AI - RFP Responses",
+                body="Attached are the SMARTFILL AI generated RFP responses.",
+                attachment_path=filename
+            )
+            if success:
+                success_msg = f"✅ Document successfully delivered to {recipient}!"
+                set_email_success(success_msg)
+            return success, message
+        except Exception as e:
+            return False, str(e)
+    else:
+        return False, "Please enter a valid email address"
 
 rag = st.session_state.rag
 rfp_processor = st.session_state.rfp_processor
@@ -125,113 +106,79 @@ def clear_input_fields():
     if current_file_key in st.session_state:
         st.session_state[current_file_key] = None
 
-def show_export_button():
+def generate_document(answers):
+    """Generate a Word document with RFP responses"""
     try:
-        # Debug state information
-        print("Debug - Export Status:", st.session_state.export_status)
-        st.write("Debug - Export Status:", st.session_state.export_status)
+        # Create Word document
+        doc = Document()
+        doc.add_heading("SMARTFILL AI - RFP Responses", 0)
+        doc.add_paragraph(f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        doc.add_paragraph(f"Total Questions: {len(answers)}")
+        doc.add_paragraph()
+
+        # Add each Q&A to document
+        for q, a in answers.items():
+            doc.add_heading("Question", level=2)
+            doc.add_paragraph(q)
+            doc.add_heading("Response", level=2)
+            doc.add_paragraph(a)
+            doc.add_paragraph()
+
+        # Save to file
+        import uuid
+        filename = f"RFP_Responses_{uuid.uuid4().hex[:8]}.docx"
+        doc.save(filename)
+        st.session_state.current_doc_filename = filename
         
-        if st.session_state.export_status['ready'] and st.session_state.export_status['filename']:
-            try:
-                # Verify file exists before creating the export UI
-                if not os.path.exists(st.session_state.export_status['filename']):
-                    st.error(f"Export file not found: {st.session_state.export_status['filename']}")
-                    print(f"Debug - File not found: {st.session_state.export_status['filename']}")
-                    return
-                    
-                file_size = os.path.getsize(st.session_state.export_status['filename'])
-                print(f"Debug - File size: {file_size} bytes")
-                
-                # Create a container for the export button
-                export_container = st.container()
-                with export_container:
-                    st.markdown("""
-                        <style>
-                        .download-button {
-                            text-align: center;
-                            padding: 20px;
-                            background-color: #f0f2f6;
-                            border-radius: 10px;
-                            margin: 20px 0;
-                        }
-                        </style>
-                        <div class="download-button">
-                            <h3>Your document is ready for download!</h3>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    try:
-                        # Show export button with the file
-                        with open(st.session_state.export_status['filename'], "rb") as file:
-                            file_data = file.read()
-                            if len(file_data) > 0:  # Verify file is not empty
-                                st.download_button(
-                                    label="📥 Export Response Document",
-                                    data=file_data,
-                                    file_name=os.path.basename(st.session_state.export_status['filename']),
-                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                    key="download_button"
-                                )
-                                print("Debug - Download button created successfully")
-                                
-                                # Add a status message to confirm document is saved
-                                st.info(f"💾 Document saved as: {st.session_state.export_status['filename']}")
-                            else:
-                                st.error("Generated document is empty")
-                                print("Debug - Generated document is empty")
-                    except Exception as file_e:
-                        st.error(f"Error reading the file: {str(file_e)}")
-                        print(f"Debug - File reading error: {str(file_e)}")
-                            
-            except Exception as ui_e:
-                st.error(f"Error creating export UI: {str(ui_e)}")
-                print(f"Debug - UI creation error: {str(ui_e)}")
-                
+        return filename, None
     except Exception as e:
-        st.error(f"Error in export functionality: {str(e)}")
-        print(f"Debug - Export error: {str(e)}")
-        # Reset export status on error
-        st.session_state.export_status['ready'] = False
-        st.session_state.export_status['filename'] = None
-        st.session_state.export_status['error'] = str(e)
+        return None, str(e)
 
 # Sidebar for document processing
 with st.sidebar:
     st.title("📂 Upload Training Documents")
     
-    pdf_files = st.file_uploader("Please Upload Files here", type=["pdf"], accept_multiple_files=True, key="pdf_upload", help="Upload your PDF files here")
-    excel_files = st.file_uploader("Please Upload Files here", type=["xlsx"], accept_multiple_files=True, key="excel_upload", help="Upload your Excel files here")
-    other_files = st.file_uploader("Please Upload Files here", type=["docx", "csv"], accept_multiple_files=True, key="other_upload", help="Upload your DOCX/CSV files here")
+    training_files = st.file_uploader(
+        "Upload your training documents",
+        type=["pdf", "xlsx", "docx", "csv"],
+        accept_multiple_files=True,
+        help="Upload any PDF, Excel, Word, or CSV files for training"
+    )
     
     if st.button("Process Documents"):
-        all_files = []
-        if pdf_files:
-            all_files.extend(pdf_files)
-        if excel_files:
-            all_files.extend(excel_files)
-            # Process Q&A pairs with progress bar
-            progress_bar = st.progress(0)
-            for i, f in enumerate(excel_files):
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-                    tmp.write(f.read())
-                    st.info(f"Processing Q&A pairs from {f.name}...")
-                    rfp_processor.load_training_qa_pairs(tmp.name)
-                    os.remove(tmp.name)
-                progress_bar.progress((i + 1) / len(excel_files))
-            progress_bar.empty()
-        if other_files:
-            all_files.extend(other_files)
-            
-        if all_files:
+        if training_files:
             status = st.empty()
             progress_text = st.empty()
             progress_bar = st.progress(0)
+            total_files = len(training_files)
             
-            for i, f in enumerate(all_files):
-                progress_text.text(f"Processing: {f.name}")
-                chunks_added = rag.add_document(f)
-                progress_text.text(f"✅ Added {chunks_added} chunks from {f.name}")
-                progress_bar.progress((i + 1) / len(all_files))
+            for i, file in enumerate(training_files):
+                try:
+                    progress_text.text(f"Processing: {file.name}")
+                    
+                    # Handle Excel files specially for Q&A pairs if they match the expected format
+                    if file.name.endswith('.xlsx'):
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+                            tmp.write(file.read())
+                            # Try to process as Q&A pairs first
+                            try:
+                                rfp_processor.load_training_qa_pairs(tmp.name)
+                                st.info(f"✅ Processed Q&A pairs from {file.name}")
+                            except Exception as e:
+                                # If Q&A processing fails, process as regular document
+                                chunks_added = rag.add_document(file)
+                                st.info(f"✅ Processed {file.name} as regular document")
+                            os.remove(tmp.name)
+                    else:
+                        # Process all other document types
+                        chunks_added = rag.add_document(file)
+                        progress_text.text(f"✅ Added {chunks_added} chunks from {file.name}")
+                    
+                except Exception as e:
+                    progress_text.text(f"❌ Error processing {file.name}: {str(e)}")
+                    time.sleep(2)
+                
+                progress_bar.progress((i + 1) / total_files)
                 time.sleep(0.5)
             
             progress_bar.empty()
@@ -240,6 +187,14 @@ with st.sidebar:
             st.session_state.indexed = True
         else:
             st.warning("Please upload at least one document to process")
+
+# Display success message if email was sent successfully
+if st.session_state.email_success:
+    st.success(st.session_state.email_success_message)
+    # Reset the success flag after displaying the message
+    time.sleep(3)
+    st.session_state.email_success = False
+    st.rerun()
 
 # Main UI
 st.title("🤖 SMARTFILL AI - RFP Assistant")
@@ -255,6 +210,7 @@ if st.session_state.indexed:
             st.session_state.current_question_idx = 0
             st.session_state.answers = {}
             st.session_state.document_generated = False
+            st.session_state.email_form_visible = False
             
             # Process RFP
             answers, needs_context = rfp_processor.process_rfp(rfp_file, rag.db)
@@ -274,48 +230,30 @@ if st.session_state.indexed:
         if st.button("Get Final Responses", key="get_final_responses_auto"):
             try:
                 with st.spinner("Generating final document..."):
-                    # Create Word document
-                    doc = Document()
-                    doc.add_heading("SMARTFILL AI - RFP Responses", 0)
-                    doc.add_paragraph(f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-                    doc.add_paragraph(f"Total Questions: {len(st.session_state.answers)}")
-                    doc.add_paragraph()
-
-                    # Add each Q&A to document
-                    for q, a in st.session_state.answers.items():
-                        doc.add_heading("Question", level=2)
-                        doc.add_paragraph(q)
-                        doc.add_heading("Response", level=2)
-                        doc.add_paragraph(a)
-                        doc.add_paragraph()
-
-                    # Save to file
-                    import uuid
-                    filename = f"RFP_Responses_{uuid.uuid4().hex[:8]}.docx"
-                    doc.save(filename)
-
-                st.success("✅ Completed final question and responses generation!")
-
-                # Create two columns for export and mail buttons
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    with open(filename, "rb") as file:
-                        file_data = file.read()
-                        st.download_button(
-                            label="📥 Export Responses as DOCX",
-                            data=file_data,
-                            file_name=filename,
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        )
-
-                # After showing export button in col1
-                with col2:
-                    handle_email_section(col2, filename)
-
+                    filename, error = generate_document(st.session_state.answers)
+                    if error:
+                        st.error(f"❌ Failed to generate document: {error}")
+                    else:
+                        st.success("✅ Completed final question and responses generation!")
+                        
+                        # Create two columns for export and email options
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            with open(filename, "rb") as file:
+                                file_data = file.read()
+                                st.download_button(
+                                    label="📥 Export Responses as DOCX",
+                                    data=file_data,
+                                    file_name=filename,
+                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                )
+                        
+                        # The email button with on_click callback
+                        with col2:
+                            st.button("✉️ Send via Email", key="email_button_1", on_click=show_email_form)
             except Exception as e:
                 st.error(f"❌ Failed to generate export: {str(e)}")
-                st.write("Debug - Exception details:", e)
 
     # Question display mode selection
     if st.session_state.needs_context:
@@ -455,45 +393,102 @@ if st.session_state.indexed:
                 if st.button("Get Final Responses", key="get_final_responses"):
                     try:
                         with st.spinner("Generating final document..."):
-                            # Create Word document
-                            doc = Document()
-                            doc.add_heading("SMARTFILL AI - RFP Responses", 0)
-                            doc.add_paragraph(f"Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-                            doc.add_paragraph(f"Total Questions: {len(st.session_state.answers)}")
-                            doc.add_paragraph()
-
-                            # Add each Q&A to document
-                            for q, a in st.session_state.answers.items():
-                                doc.add_heading("Question", level=2)
-                                doc.add_paragraph(q)
-                                doc.add_heading("Response", level=2)
-                                doc.add_paragraph(a)
-                                doc.add_paragraph()
-
-                            # Save to file
-                            import uuid
-                            filename = f"RFP_Responses_{uuid.uuid4().hex[:8]}.docx"
-                            doc.save(filename)
-
-                        st.success("✅ Completed final question and responses generation!")
-
-                        # Create two columns for export and mail buttons
-                        col1, col2 = st.columns(2)
-                        
-                        with col1:
-                            with open(filename, "rb") as file:
-                                file_data = file.read()
-                                st.download_button(
-                                    label="📥 Export Responses as DOCX",
-                                    data=file_data,
-                                    file_name=filename,
-                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                )
-
-                        # After showing export button in col1
-                        with col2:
-                            handle_email_section(col2, filename)
-
+                            filename, error = generate_document(st.session_state.answers)
+                            if error:
+                                st.error(f"❌ Failed to generate document: {error}")
+                            else:
+                                st.success("✅ Completed final question and responses generation!")
+                                
+                                # Create two columns for export and email options
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    with open(filename, "rb") as file:
+                                        file_data = file.read()
+                                        st.download_button(
+                                            label="📥 Export Responses as DOCX",
+                                            data=file_data,
+                                            file_name=filename,
+                                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                        )
+                                
+                                # The email button uses the on_click parameter for the callback
+                                with col2:
+                                    st.button("✉️ Send via Email", key="email_button_2", on_click=show_email_form)
                     except Exception as e:
                         st.error(f"❌ Failed to generate export: {str(e)}")
-                        st.write("Debug - Exception details:", e)
+
+# EMAIL FORM SECTION - This is a completely separate section at the end
+# Only show if the email form should be visible
+if st.session_state.email_form_visible and st.session_state.current_doc_filename:
+    # Create a container with a border to make it stand out
+    email_container = st.container()
+    
+    with email_container:
+        st.markdown("""
+        <style>
+        .email-section {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f8f9fa;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        </style>
+        <div class="email-section">
+        <h3>✉️ Send Document via Email</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Email input field
+        recipient_email = st.text_input("Enter recipient's email address:", key="email_recipient_input")
+        
+        # Create columns for send and cancel buttons
+        button_col1, button_col2, button_col3 = st.columns([1, 1, 2])
+        
+        with button_col1:
+            if st.button("📨 Send Email", key="send_email_btn"):
+                if recipient_email:
+                    with st.spinner("Sending email..."):
+                        success, message = send_email_now(
+                            recipient=recipient_email,
+                            filename=st.session_state.current_doc_filename
+                        )
+                        
+                        if success:
+                            # Display a beautiful success message
+                            st.markdown(f"""
+                            <div class="success-message">
+                                <div>✅ Document successfully delivered to {recipient_email}!</div>
+                                <div style="font-size: 0.9em; margin-top: 5px;">The recipient will receive the document shortly.</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Set the success state and schedule the form to hide
+                            st.session_state.email_success = True
+                            st.session_state.email_success_message = f"✅ Document successfully delivered to {recipient_email}!"
+                            st.session_state.email_form_visible = False
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Failed to send email: {message}")
+                else:
+                    st.warning("⚠️ Please enter a recipient email address")
+                    
+        with button_col2:
+            if st.button("❌ Cancel", key="cancel_email_btn"):
+                st.session_state.email_form_visible = False
+                st.rerun()
