@@ -8,6 +8,43 @@ from docx import Document
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from backend.rag_engine import RAGEngine
 from backend.rfp_processor import RFPProcessor
+import requests
+
+# Login form UI
+def show_login_page():
+    st.title("🔐 Login to SMARTFILL AI")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    login_button = st.button("Login")
+
+    if login_button:
+        if not username or not password:
+            st.warning("Please enter both username and password.")
+            return
+
+        try:
+            response = requests.post(
+                "http://localhost:8000/login",  # FastAPI URL
+                data={"username": username, "password": password},
+                timeout=5
+            )
+            if response.status_code == 200:
+                st.session_state.logged_in = True
+                st.success("Login successful!")
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials.")
+        except requests.exceptions.RequestException:
+            st.error("Failed to connect to authentication server.")
+
+# If not logged in, show login page
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    show_login_page()
+    st.stop()
+
 
 st.set_page_config(page_title="SMARTFILL AI", layout="wide")
 
