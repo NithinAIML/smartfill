@@ -13,6 +13,18 @@ load_dotenv()
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Test API key
+try:
+    # Make a simple test call to the API
+    test_response = client.embeddings.create(
+        model="text-embedding-ada-002",
+        input="test"
+    )
+    print("✅ API key is valid and working!")
+except Exception as e:
+    print("❌ API key validation failed:")
+    print(f"Error: {str(e)}")
+
 def get_embedding(text):
     """Get embedding for a text using OpenAI's API"""
     response = client.embeddings.create(
