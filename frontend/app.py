@@ -9,33 +9,100 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from backend.rag_engine import RAGEngine
 from backend.rfp_processor import RFPProcessor
 import requests
+from PIL import Image
 
-# Login form UI
+USERS = {
+    "admin": "password123",
+    "user": "secret"
+}
+
+# Login form UI with default Streamlit styling
 def show_login_page():
-    st.title("🔐 Login to SMARTFILL AI")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    login_button = st.button("Login")
+    st.markdown(
+        """
+        <style>
+            .main-title {
+                font-size: 48px;
+                font-weight: bold;
+                text-align: center;
+                color: inherit;
+            }
+            .login-container {
+                background-color: #f9f9f9;
+                padding: 10px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+            .login-header {
+                font-size: 28px;
+                font-weight: 600;
+                color: inherit;
+                margin-bottom: 10px;
+            }
+            .stTextInput>div>div>input {
+                background-color: #ffffff;
+            }
+            .stButton button {
+                font-weight: bold;
+                border-radius: 8px;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    import base64
+    from io import BytesIO
 
-    if login_button:
-        if not username or not password:
-            st.warning("Please enter both username and password.")
-            return
+    # Load and convert the image to base64
+    def get_base64_image(image_path):
+        img = Image.open(image_path)
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")  # or JPEG
+        img_b64 = base64.b64encode(buffered.getvalue()).decode()
+        return img_b64
 
-        try:
-            response = requests.post(
-                "http://localhost:8000/login",  # FastAPI URL
-                data={"username": username, "password": password},
-                timeout=5
-            )
-            if response.status_code == 200:
-                st.session_state.logged_in = True
-                st.success("Login successful!")
-                st.experimental_rerun()
-            else:
-                st.error("Invalid credentials.")
-        except requests.exceptions.RequestException:
-            st.error("Failed to connect to authentication server.")
+    # Get base64 string
+    img_b64 = get_base64_image("smartfill-logo.jpeg")
+
+    # Display the image centered using HTML
+    st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0px;">
+            <img src="data:image/png;base64,{img_b64}" width="90"/>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    st.markdown('<div class="main-title">SMARTFILL AI</div>', unsafe_allow_html=True)
+    st.divider()
+
+    # Centered layout using columns
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        # st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        st.markdown('<div class="login-header">🔐 Login</div>', unsafe_allow_html=True)
+
+        username = st.text_input("Username", placeholder="Enter your username")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
+        login_button = st.button("Login")
+
+        if login_button:
+            if not username or not password:
+                st.warning("⚠️ Please enter both username and password.")
+                return
+
+            try:
+                if USERS.get(username) == password:
+                    st.session_state.logged_in = True
+                    st.success("✅ Login successful!")
+                    st.rerun()
+                else:
+                    st.error("❌ Invalid credentials.")
+            except requests.exceptions.RequestException:
+                st.error("⚠️ Failed to connect to authentication server.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # If not logged in, show login page
 if 'logged_in' not in st.session_state:

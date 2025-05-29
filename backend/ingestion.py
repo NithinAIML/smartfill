@@ -1,8 +1,8 @@
 
 import os
 import tempfile
-from utils import read_file, chunk_text, embed_texts
-from config import settings
+from .utils import read_file, chunk_text, embed_texts
+from .config import settings
 from weaviate import Client
 
 

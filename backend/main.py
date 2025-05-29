@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from ingestion import ingest_documents
+from .ingestion import ingest_documents
 from rfp_processor import extract_questions
 from retriever import answer_questions_with_rag
 from generator import generate_output_doc
