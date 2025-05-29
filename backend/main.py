@@ -1,7 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from ingestion import ingest_documents
+from .ingestion import ingest_documents
 from rfp_processor import extract_questions
 from retriever import answer_questions_with_rag
 from generator import generate_output_doc
@@ -14,8 +14,22 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    allow_credentials=True,
 )
+
+
+USERS = {
+    "admin": "password123",
+    "user": "secret"
+}
+
+@app.post("/login")
+def login(username: str = Form(...), password: str = Form(...)):
+    if USERS.get(username) == password:
+        return {"message": "Login successful"}
+    raise HTTPException(status_code=401, detail="Invalid username or password")
+
 
 @app.post("/ingest")
 async def ingest(files: list[UploadFile]):
