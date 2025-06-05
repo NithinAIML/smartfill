@@ -5,6 +5,7 @@ from docx import Document
 OUTPUT_DIR = "generated_outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+
 async def generate_output_doc(questions, answers):
     doc = Document()
     doc.add_heading("RFP Response Document", 0)

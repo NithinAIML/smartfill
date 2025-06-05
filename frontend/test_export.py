@@ -7,11 +7,11 @@ import uuid
 st.set_page_config(page_title="SMARTFILL AI - Export Test", layout="wide")
 
 # 1. Simulate some answers (mock GPT output)
-if 'answers' not in st.session_state:
+if "answers" not in st.session_state:
     st.session_state.answers = {
         "What is your company's name?": "Kaizen Health",
         "Do you operate in Texas?": "Yes, we serve several counties in Texas.",
-        "Do you offer wheelchair-accessible vehicles?": "Yes, ADA-compliant vehicles are part of our fleet."
+        "Do you offer wheelchair-accessible vehicles?": "Yes, ADA-compliant vehicles are part of our fleet.",
     }
 
 # 2. Show answers on screen
@@ -35,12 +35,14 @@ if st.button("📝 Generate Final Responses"):
             doc.add_paragraph()
 
             for q, a in st.session_state.answers.items():
-                doc.add_paragraph(f"Question: {q}", style='List Bullet')
+                doc.add_paragraph(f"Question: {q}", style="List Bullet")
                 doc.add_paragraph(f"Answer: {a}")
                 doc.add_paragraph()
 
             # Save the document
-            output_filename = f"RFP_Responses_{time.strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}.docx"
+            output_filename = (
+                f"RFP_Responses_{time.strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}.docx"
+            )
             doc.save(output_filename)
 
             # Show download button if file was created
@@ -51,7 +53,7 @@ if st.button("📝 Generate Final Responses"):
                         label="📥 Download RFP Response Document",
                         data=f,
                         file_name=output_filename,
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     )
             else:
                 st.error("❌ Document file not found after saving.")

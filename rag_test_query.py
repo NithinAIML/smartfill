@@ -17,7 +17,7 @@ embedding = OpenAIEmbeddings(model="text-embedding-ada-002")
 vectorstore = FAISS.load_local(
     "faiss_index",
     embeddings=embedding,
-    allow_dangerous_deserialization=True  # ✅ Trust your own saved file
+    allow_dangerous_deserialization=True,  # ✅ Trust your own saved file
 )
 
 

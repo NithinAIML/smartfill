@@ -19,10 +19,8 @@ app.add_middleware(
 )
 
 
-USERS = {
-    "admin": "password123",
-    "user": "secret"
-}
+USERS = {"admin": "password123", "user": "secret"}
+
 
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
@@ -36,10 +34,12 @@ async def ingest(files: list[UploadFile]):
     result = await ingest_documents(files)
     return JSONResponse(content={"status": "success", "indexed": result})
 
+
 @app.post("/process-rfp")
 async def process_rfp(file: UploadFile):
     questions = await extract_questions(file)
     return {"questions": questions}
+
 
 @app.post("/answer-rfp")
 async def answer_rfp(file: UploadFile):
@@ -52,8 +52,12 @@ async def answer_rfp(file: UploadFile):
     output_file_path = await generate_output_doc(questions, answers)
     return {"status": "complete", "file_path": output_file_path}
 
+
 from fastapi.responses import FileResponse
+
 
 @app.get("/download")
 def download_file(file: str):
-    return FileResponse(path=file, filename=file.split("/")[-1], media_type='application/octet-stream')
+    return FileResponse(
+        path=file, filename=file.split("/")[-1], media_type="application/octet-stream"
+    )

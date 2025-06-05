@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 import tempfile
 from docx import Document
 
+
 class RAGEngine:
     def __init__(self, layout_aware=False):
         self.embedding = OpenAIEmbeddings(model="text-embedding-ada-002")
@@ -21,11 +22,9 @@ class RAGEngine:
         self.db._index = None
         self.layout_aware = layout_aware
         self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
-            separators=["\n\n", "\n", ".", " "]
+            chunk_size=500, chunk_overlap=50, separators=["\n\n", "\n", ".", " "]
         )
-        
+
     def process_pdf(self, file_path):
         """Special handling for PDF documents - page by page extraction"""
         chunks = []
@@ -38,7 +37,7 @@ class RAGEngine:
                     # Chunk the page text
                     page_chunks = self.splitter.split_text(page_text)
                     chunks.extend(page_chunks)
-        
+
         # Add chunks to vector store with page metadata
         if chunks:
             self.db.add_texts(chunks)
@@ -47,18 +46,24 @@ class RAGEngine:
     def process_excel_qa(self, file_path):
         """Special handling for Excel Q&A format"""
         wb = load_workbook(file_path)
-        
+
         qa_chunks = []
         # Process each sheet
         for sheet_name in wb.sheetnames:
             ws = wb[sheet_name]
-            
+
             # Skip instruction sheets by checking first few cells for instruction-like content
-            first_cells_text = ' '.join([str(cell.value or '').lower() for row in ws.iter_rows(max_row=3) 
-                                       for cell in row if cell.value])
-            if 'instruction' in first_cells_text or 'français' in first_cells_text:
+            first_cells_text = " ".join(
+                [
+                    str(cell.value or "").lower()
+                    for row in ws.iter_rows(max_row=3)
+                    for cell in row
+                    if cell.value
+                ]
+            )
+            if "instruction" in first_cells_text or "français" in first_cells_text:
                 continue
-                
+
             questions = []
             responses = []
             pending_question = None
@@ -70,12 +75,12 @@ class RAGEngine:
 
                 if q_cell and q_cell.value and not q_cell.font.bold:
                     pending_question = str(q_cell.value).strip()
-                    
+
                     if r_cell and r_cell.value:
                         questions.append(pending_question)
                         responses.append(str(r_cell.value).strip())
                         pending_question = None
-                        
+
                 elif pending_question and r_cell and r_cell.value:
                     questions.append(pending_question)
                     responses.append(str(r_cell.value).strip())
@@ -83,11 +88,10 @@ class RAGEngine:
 
             # Create specialized chunks that preserve Q&A mapping
             sheet_chunks = [
-                f"Question: {q}\nAnswer: {a}" 
-                for q, a in zip(questions, responses)
+                f"Question: {q}\nAnswer: {a}" for q, a in zip(questions, responses)
             ]
             qa_chunks.extend(sheet_chunks)
-        
+
         # Add to vector store with Q&A metadata
         if qa_chunks:
             self.db.add_texts(qa_chunks)
@@ -96,12 +100,12 @@ class RAGEngine:
     def add_document(self, file):
         """Main entry point for adding documents"""
         ext = os.path.splitext(file.name)[1].lower()
-        
+
         # Create a temporary file to process
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             tmp.write(file.getvalue())  # Use getvalue() for Streamlit's UploadedFile
             tmp_path = tmp.name
-            
+
             try:
                 # Process based on file type
                 if ext == ".pdf":
@@ -113,39 +117,49 @@ class RAGEngine:
                                 page_text = f"[Page {page_num + 1}]\n{text}"
                                 page_chunks = self.splitter.split_text(page_text)
                                 chunks.extend(page_chunks)
-                    
+
                 elif ext == ".xlsx":
                     wb = load_workbook(tmp_path)
                     chunks = []
-                    
+
                     for sheet_name in wb.sheetnames:
                         ws = wb[sheet_name]
-                        first_cells_text = ' '.join([str(cell.value or '').lower() 
-                                                   for row in ws.iter_rows(max_row=3) 
-                                                   for cell in row if cell.value])
-                        if 'instruction' in first_cells_text or 'français' in first_cells_text:
+                        first_cells_text = " ".join(
+                            [
+                                str(cell.value or "").lower()
+                                for row in ws.iter_rows(max_row=3)
+                                for cell in row
+                                if cell.value
+                            ]
+                        )
+                        if (
+                            "instruction" in first_cells_text
+                            or "français" in first_cells_text
+                        ):
                             continue
-                            
+
                         text = "\n".join(
-                            str(cell.value).strip() 
-                            for row in ws.iter_rows() 
-                            for cell in row 
+                            str(cell.value).strip()
+                            for row in ws.iter_rows()
+                            for cell in row
                             if cell.value
                         )
                         sheet_chunks = self.splitter.split_text(text)
                         chunks.extend(sheet_chunks)
-                    
+
                 elif ext == ".docx":
                     doc = Document(tmp_path)
-                    text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
+                    text = "\n".join(
+                        [para.text for para in doc.paragraphs if para.text.strip()]
+                    )
                     chunks = self.splitter.split_text(text)
-                
+
                 # Add chunks to vector store
                 if chunks:
                     self.db.add_texts(chunks)
                     return len(chunks)
                 return 0
-                
+
             finally:
                 # Clean up temporary file
                 try:
@@ -157,7 +171,7 @@ class RAGEngine:
         """Enhanced retrieval with metadata handling"""
         docs = self.db.similarity_search(question, k=k)
         results = []
-        
+
         for doc in docs:
             content = doc.page_content
             # Extract page number if present
@@ -165,23 +179,27 @@ class RAGEngine:
                 page_info = content.split("]")[0] + "]"
                 content = content.replace(page_info, "").strip()
             results.append(content)
-            
+
         return results if results else []
 
     def answer(self, question):
         context = self.retrieve(question)
         if not context:
             return "No relevant information found."
-            
+
         prompt = f"Context:\n{''.join(context)}\n\nQuestion: {question}\nAnswer:"
 
         from openai import OpenAI
+
         client = OpenAI()
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant providing accurate answers based on the given context."},
-                {"role": "user", "content": prompt}
-            ]
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant providing accurate answers based on the given context.",
+                },
+                {"role": "user", "content": prompt},
+            ],
         )
         return response.choices[0].message.content.strip()

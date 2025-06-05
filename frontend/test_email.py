@@ -3,9 +3,9 @@ import streamlit as st
 st.title("📧 Email Export Test")
 
 # --- INIT STATE ---
-if 'email_stage' not in st.session_state:
+if "email_stage" not in st.session_state:
     st.session_state.email_stage = "hidden"
-if 'email_input' not in st.session_state:
+if "email_input" not in st.session_state:
     st.session_state.email_input = ""
 
 # --- SHOW MAIN BUTTON ---
@@ -17,7 +17,9 @@ if st.session_state.email_stage == "hidden":
 if st.session_state.email_stage == "input":
     st.markdown("#### ✉️ Email Export Section")
 
-    st.session_state.email_input = st.text_input("📧 Enter recipient's email", value=st.session_state.email_input)
+    st.session_state.email_input = st.text_input(
+        "📧 Enter recipient's email", value=st.session_state.email_input
+    )
 
     col1, col2 = st.columns([1, 3])
 

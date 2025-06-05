@@ -18,7 +18,7 @@ files = {
     "Non-Emergent RFP": "Request for Proposal.pdf",
     "Kaizen Bios": "Kaizen Health Bios.pdf",
     "Kaizen Pricing": "Kaizen Health Pricing.pdf",
-    "Q&A Excel": "Attachment A.xlsx"
+    "Q&A Excel": "Attachment A.xlsx",
 }
 
 results = {}
@@ -46,7 +46,9 @@ for name, path in files.items():
         elif ext == ".xlsx":
             df = pd.read_excel(path)
             if "Question" in df.columns and "Response" in df.columns:
-                text = "\n".join([f"Q: {q}\nA: {a}" for q, a in zip(df["Question"], df["Response"])])
+                text = "\n".join(
+                    [f"Q: {q}\nA: {a}" for q, a in zip(df["Question"], df["Response"])]
+                )
             else:
                 text = df.to_string(index=False)
             # Print Excel chunks
@@ -66,6 +68,7 @@ for name, path in files.items():
 
         # Create FAISS index
         from langchain.vectorstores import FAISS
+
         vectorstore = FAISS.from_texts(chunks, embedding)
         vectorstore.save_local("faiss_index")
 
@@ -73,7 +76,7 @@ for name, path in files.items():
             "text_extracted": len(text) > 50,
             "chunks_created": len(chunks),
             "embeddings_created": len(embeddings),
-            "faiss_index_size": vectorstore.index.ntotal
+            "faiss_index_size": vectorstore.index.ntotal,
         }
 
     except Exception as e:

@@ -117,8 +117,8 @@
 #     current_context_key = f"context_{st.session_state.current_question_idx}"
 #     if current_context_key in st.session_state:
 #         st.session_state[current_context_key] = ""
-    
-#     # Clear any existing file upload for the current question    
+
+#     # Clear any existing file upload for the current question
 #     current_file_key = f"file_{st.session_state.current_question_idx}"
 #     if current_file_key in st.session_state:
 #         st.session_state[current_file_key] = None
@@ -128,7 +128,7 @@
 #         # Debug state information
 #         print("Debug - Export Status:", st.session_state.export_status)
 #         st.write("Debug - Export Status:", st.session_state.export_status)
-        
+
 #         if st.session_state.export_status['ready'] and st.session_state.export_status['filename']:
 #             try:
 #                 # Verify file exists before creating the export UI
@@ -136,10 +136,10 @@
 #                     st.error(f"Export file not found: {st.session_state.export_status['filename']}")
 #                     print(f"Debug - File not found: {st.session_state.export_status['filename']}")
 #                     return
-                    
+
 #                 file_size = os.path.getsize(st.session_state.export_status['filename'])
 #                 print(f"Debug - File size: {file_size} bytes")
-                
+
 #                 # Create a container for the export button
 #                 export_container = st.container()
 #                 with export_container:
@@ -157,7 +157,7 @@
 #                             <h3>Your document is ready for download!</h3>
 #                         </div>
 #                         """, unsafe_allow_html=True)
-                    
+
 #                     try:
 #                         # Show export button with the file
 #                         with open(st.session_state.export_status['filename'], "rb") as file:
@@ -171,7 +171,7 @@
 #                                     key="download_button"
 #                                 )
 #                                 print("Debug - Download button created successfully")
-                                
+
 #                                 # Add a status message to confirm document is saved
 #                                 st.info(f"💾 Document saved as: {st.session_state.export_status['filename']}")
 #                             else:
@@ -180,11 +180,11 @@
 #                     except Exception as file_e:
 #                         st.error(f"Error reading the file: {str(file_e)}")
 #                         print(f"Debug - File reading error: {str(file_e)}")
-                            
+
 #             except Exception as ui_e:
 #                 st.error(f"Error creating export UI: {str(ui_e)}")
 #                 print(f"Debug - UI creation error: {str(ui_e)}")
-                
+
 #     except Exception as e:
 #         st.error(f"Error in export functionality: {str(e)}")
 #         print(f"Debug - Export error: {str(e)}")
@@ -196,11 +196,11 @@
 # # Sidebar for document processing
 # with st.sidebar:
 #     st.title("📂 Upload Training Documents")
-    
+
 #     pdf_files = st.file_uploader("Please Upload Files here", type=["pdf"], accept_multiple_files=True, key="pdf_upload", help="Upload your PDF files here")
 #     excel_files = st.file_uploader("Please Upload Files here", type=["xlsx"], accept_multiple_files=True, key="excel_upload", help="Upload your Excel files here")
 #     other_files = st.file_uploader("Please Upload Files here", type=["docx", "csv"], accept_multiple_files=True, key="other_upload", help="Upload your DOCX/CSV files here")
-    
+
 #     if st.button("Process Documents"):
 #         all_files = []
 #         if pdf_files:
@@ -219,19 +219,19 @@
 #             progress_bar.empty()
 #         if other_files:
 #             all_files.extend(other_files)
-            
+
 #         if all_files:
 #             status = st.empty()
 #             progress_text = st.empty()
 #             progress_bar = st.progress(0)
-            
+
 #             for i, f in enumerate(all_files):
 #                 progress_text.text(f"Processing: {f.name}")
 #                 chunks_added = rag.add_document(f)
 #                 progress_text.text(f"✅ Added {chunks_added} chunks from {f.name}")
 #                 progress_bar.progress((i + 1) / len(all_files))
 #                 time.sleep(0.5)
-            
+
 #             progress_bar.empty()
 #             progress_text.empty()
 #             status.success("✅ All documents processed successfully")
@@ -253,7 +253,7 @@
 #             st.session_state.current_question_idx = 0
 #             st.session_state.answers = {}
 #             st.session_state.document_generated = False
-            
+
 #             # Process RFP
 #             answers, needs_context = rfp_processor.process_rfp(rfp_file, rag.db)
 #             st.session_state.answers = answers
@@ -296,7 +296,7 @@
 
 #                 # Create two columns for export and mail buttons
 #                 col1, col2 = st.columns(2)
-                
+
 #                 with col1:
 #                     with open(filename, "rb") as file:
 #                         file_data = file.read()
@@ -366,28 +366,28 @@
 #     if st.session_state.needs_context:
 #         col1, col2 = st.columns(2)
 #         with col1:
-#             st.checkbox("Show all questions at once", key="show_all", 
+#             st.checkbox("Show all questions at once", key="show_all",
 #                        on_change=set_all_mode,
 #                        value=(st.session_state.questions_mode == "all"))
 #         with col2:
 #             st.checkbox("Show questions one by one", key="show_one",
 #                        on_change=set_single_mode,
 #                        value=(st.session_state.questions_mode == "single"))
-        
+
 #         # Handle mode selection conflicts
 #         if st.session_state.get("show_all") and st.session_state.get("show_one"):
 #             st.error("Please select only one display mode")
 #             st.session_state.questions_mode = None
-        
+
 #         # Display questions based on selected mode
 #         if st.session_state.questions_mode:
 #             unanswered = [q for q in st.session_state.needs_context if q not in st.session_state.answers]
-            
+
 #             if unanswered:
 #                 if st.session_state.questions_mode == "all":
 #                     st.markdown("### Questions Needing Additional Context")
 #                     question_containers = {}  # Store containers for each question
-                    
+
 #                     for question in unanswered:
 #                         question_containers[question] = st.container()
 #                         with question_containers[question]:
@@ -397,7 +397,7 @@
 #                                 context = st.text_area("Provide additional context:", key=f"context_{question}")
 #                             with col2:
 #                                 context_file = st.file_uploader(
-#                                     "Or upload a file with context", 
+#                                     "Or upload a file with context",
 #                                     key=f"file_{question}",
 #                                     label_visibility="collapsed"
 #                                 )
@@ -409,7 +409,7 @@
 #                                             chunks_added = rag.add_document(context_file)
 #                                             docs = rag.db.similarity_search(question, k=3)
 #                                             context = "\n\n".join([doc.page_content for doc in docs])
-                                        
+
 #                                         response = rfp_processor.openai_client.chat.completions.create(
 #                                             model="gpt-4",
 #                                             messages=[
@@ -419,24 +419,24 @@
 #                                         )
 #                                         st.session_state.answers[question] = response.choices[0].message.content
 #                                         st.success("Answer updated successfully!")
-                                        
+
 #                                         # Show preview of the answer
 #                                         st.markdown("**Generated Answer:**")
 #                                         st.markdown(st.session_state.answers[question])
-                
+
 #                 elif st.session_state.questions_mode == "single":
 #                     if st.session_state.current_question_idx < len(unanswered):
 #                         question = unanswered[st.session_state.current_question_idx]
 #                         st.markdown("### Current Question")
 #                         st.markdown(f"**Q:** {question}")
-                        
+
 #                         # Add question counter
 #                         st.markdown(f"Question {st.session_state.current_question_idx + 1} of {len(unanswered)}")
-                        
+
 #                         # Generate unique keys for each question's input fields
 #                         context_key = f"context_{st.session_state.current_question_idx}"
 #                         file_key = f"file_{st.session_state.current_question_idx}"
-                        
+
 #                         col1, col2, col3 = st.columns([2, 1, 1])
 #                         with col1:
 #                             context = st.text_area("Provide additional context:", key=context_key)
@@ -454,7 +454,7 @@
 #                                         chunks_added = rag.add_document(context_file)
 #                                         docs = rag.db.similarity_search(question, k=3)
 #                                         context = "\n\n".join([doc.page_content for doc in docs])
-                                    
+
 #                                     # Generate answer without context validation
 #                                     response = rfp_processor.openai_client.chat.completions.create(
 #                                         model="gpt-4",
@@ -465,11 +465,11 @@
 #                                     )
 #                                     st.session_state.answers[question] = response.choices[0].message.content
 #                                     st.success("Answer updated successfully!")
-                                    
+
 #                                     # Show preview of the answer
 #                                     st.markdown("**Generated Answer:**")
 #                                     st.markdown(st.session_state.answers[question])
-                        
+
 #                         # Add navigation buttons in a new row
 #                         nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 1])
 #                         with nav_col1:
@@ -484,7 +484,7 @@
 #                                     clear_input_fields()  # Clear current input fields
 #                                     st.session_state.current_question_idx += 1
 #                                     st.rerun()
-                        
+
 #                         # Only show the current question's answer if it exists
 #                         if question in st.session_state.answers:
 #                             st.markdown("**Current Answer:**")
@@ -493,7 +493,7 @@
 #                         st.success("✅ All questions have been processed!")
 #             else:
 #                 st.success("✅ All questions have been processed!")
-            
+
 #             # Show Get Final Responses button only when appropriate
 #             if not st.session_state.needs_context or not unanswered:
 #                 st.markdown("---")
@@ -524,7 +524,7 @@
 
 #                         # Create two columns for export and mail buttons
 #                         col1, col2 = st.columns(2)
-                        
+
 #                         with col1:
 #                             with open(filename, "rb") as file:
 #                                 file_data = file.read()
@@ -677,8 +677,8 @@
 #     current_context_key = f"context_{st.session_state.current_question_idx}"
 #     if current_context_key in st.session_state:
 #         st.session_state[current_context_key] = ""
-    
-#     # Clear any existing file upload for the current question    
+
+#     # Clear any existing file upload for the current question
 #     current_file_key = f"file_{st.session_state.current_question_idx}"
 #     if current_file_key in st.session_state:
 #         st.session_state[current_file_key] = None
@@ -706,7 +706,7 @@
 #         filename = f"RFP_Responses_{uuid.uuid4().hex[:8]}.docx"
 #         doc.save(filename)
 #         st.session_state.current_doc_filename = filename
-        
+
 #         return filename, None
 #     except Exception as e:
 #         return None, str(e)
@@ -714,11 +714,11 @@
 # # Sidebar for document processing
 # with st.sidebar:
 #     st.title("📂 Upload Training Documents")
-    
+
 #     pdf_files = st.file_uploader("Please Upload Files here", type=["pdf"], accept_multiple_files=True, key="pdf_upload", help="Upload your PDF files here")
 #     excel_files = st.file_uploader("Please Upload Files here", type=["xlsx"], accept_multiple_files=True, key="excel_upload", help="Upload your Excel files here")
 #     other_files = st.file_uploader("Please Upload Files here", type=["docx", "csv"], accept_multiple_files=True, key="other_upload", help="Upload your DOCX/CSV files here")
-    
+
 #     if st.button("Process Documents"):
 #         all_files = []
 #         if pdf_files:
@@ -737,19 +737,19 @@
 #             progress_bar.empty()
 #         if other_files:
 #             all_files.extend(other_files)
-            
+
 #         if all_files:
 #             status = st.empty()
 #             progress_text = st.empty()
 #             progress_bar = st.progress(0)
-            
+
 #             for i, f in enumerate(all_files):
 #                 progress_text.text(f"Processing: {f.name}")
 #                 chunks_added = rag.add_document(f)
 #                 progress_text.text(f"✅ Added {chunks_added} chunks from {f.name}")
 #                 progress_bar.progress((i + 1) / len(all_files))
 #                 time.sleep(0.5)
-            
+
 #             progress_bar.empty()
 #             progress_text.empty()
 #             status.success("✅ All documents processed successfully")
@@ -772,7 +772,7 @@
 #             st.session_state.answers = {}
 #             st.session_state.document_generated = False
 #             st.session_state.email_form_visible = False
-            
+
 #             # Process RFP
 #             answers, needs_context = rfp_processor.process_rfp(rfp_file, rag.db)
 #             st.session_state.answers = answers
@@ -796,10 +796,10 @@
 #                         st.error(f"❌ Failed to generate document: {error}")
 #                     else:
 #                         st.success("✅ Completed final question and responses generation!")
-                        
+
 #                         # Create two columns for export and email options
 #                         col1, col2 = st.columns(2)
-                        
+
 #                         with col1:
 #                             with open(filename, "rb") as file:
 #                                 file_data = file.read()
@@ -809,7 +809,7 @@
 #                                     file_name=filename,
 #                                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 #                                 )
-                        
+
 #                         # The email button with on_click callback
 #                         with col2:
 #                             st.button("✉️ Send via Email", key="email_button_1", on_click=show_email_form)
@@ -820,28 +820,28 @@
 #     if st.session_state.needs_context:
 #         col1, col2 = st.columns(2)
 #         with col1:
-#             st.checkbox("Show all questions at once", key="show_all", 
+#             st.checkbox("Show all questions at once", key="show_all",
 #                        on_change=set_all_mode,
 #                        value=(st.session_state.questions_mode == "all"))
 #         with col2:
 #             st.checkbox("Show questions one by one", key="show_one",
 #                        on_change=set_single_mode,
 #                        value=(st.session_state.questions_mode == "single"))
-        
+
 #         # Handle mode selection conflicts
 #         if st.session_state.get("show_all") and st.session_state.get("show_one"):
 #             st.error("Please select only one display mode")
 #             st.session_state.questions_mode = None
-        
+
 #         # Display questions based on selected mode
 #         if st.session_state.questions_mode:
 #             unanswered = [q for q in st.session_state.needs_context if q not in st.session_state.answers]
-            
+
 #             if unanswered:
 #                 if st.session_state.questions_mode == "all":
 #                     st.markdown("### Questions Needing Additional Context")
 #                     question_containers = {}  # Store containers for each question
-                    
+
 #                     for question in unanswered:
 #                         question_containers[question] = st.container()
 #                         with question_containers[question]:
@@ -851,7 +851,7 @@
 #                                 context = st.text_area("Provide additional context:", key=f"context_{question}")
 #                             with col2:
 #                                 context_file = st.file_uploader(
-#                                     "Or upload a file with context", 
+#                                     "Or upload a file with context",
 #                                     key=f"file_{question}",
 #                                     label_visibility="collapsed"
 #                                 )
@@ -863,7 +863,7 @@
 #                                             chunks_added = rag.add_document(context_file)
 #                                             docs = rag.db.similarity_search(question, k=3)
 #                                             context = "\n\n".join([doc.page_content for doc in docs])
-                                        
+
 #                                         response = rfp_processor.openai_client.chat.completions.create(
 #                                             model="gpt-4",
 #                                             messages=[
@@ -873,24 +873,24 @@
 #                                         )
 #                                         st.session_state.answers[question] = response.choices[0].message.content
 #                                         st.success("Answer updated successfully!")
-                                        
+
 #                                         # Show preview of the answer
 #                                         st.markdown("**Generated Answer:**")
 #                                         st.markdown(st.session_state.answers[question])
-                
+
 #                 elif st.session_state.questions_mode == "single":
 #                     if st.session_state.current_question_idx < len(unanswered):
 #                         question = unanswered[st.session_state.current_question_idx]
 #                         st.markdown("### Current Question")
 #                         st.markdown(f"**Q:** {question}")
-                        
+
 #                         # Add question counter
 #                         st.markdown(f"Question {st.session_state.current_question_idx + 1} of {len(unanswered)}")
-                        
+
 #                         # Generate unique keys for each question's input fields
 #                         context_key = f"context_{st.session_state.current_question_idx}"
 #                         file_key = f"file_{st.session_state.current_question_idx}"
-                        
+
 #                         col1, col2, col3 = st.columns([2, 1, 1])
 #                         with col1:
 #                             context = st.text_area("Provide additional context:", key=context_key)
@@ -908,7 +908,7 @@
 #                                         chunks_added = rag.add_document(context_file)
 #                                         docs = rag.db.similarity_search(question, k=3)
 #                                         context = "\n\n".join([doc.page_content for doc in docs])
-                                    
+
 #                                     # Generate answer without context validation
 #                                     response = rfp_processor.openai_client.chat.completions.create(
 #                                         model="gpt-4",
@@ -919,11 +919,11 @@
 #                                     )
 #                                     st.session_state.answers[question] = response.choices[0].message.content
 #                                     st.success("Answer updated successfully!")
-                                    
+
 #                                     # Show preview of the answer
 #                                     st.markdown("**Generated Answer:**")
 #                                     st.markdown(st.session_state.answers[question])
-                        
+
 #                         # Add navigation buttons in a new row
 #                         nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 1])
 #                         with nav_col1:
@@ -938,7 +938,7 @@
 #                                     clear_input_fields()  # Clear current input fields
 #                                     st.session_state.current_question_idx += 1
 #                                     st.rerun()
-                        
+
 #                         # Only show the current question's answer if it exists
 #                         if question in st.session_state.answers:
 #                             st.markdown("**Current Answer:**")
@@ -947,7 +947,7 @@
 #                         st.success("✅ All questions have been processed!")
 #             else:
 #                 st.success("✅ All questions have been processed!")
-            
+
 #             # Show Get Final Responses button only when appropriate
 #             if not st.session_state.needs_context or not unanswered:
 #                 st.markdown("---")
@@ -959,10 +959,10 @@
 #                                 st.error(f"❌ Failed to generate document: {error}")
 #                             else:
 #                                 st.success("✅ Completed final question and responses generation!")
-                                
+
 #                                 # Create two columns for export and email options
 #                                 col1, col2 = st.columns(2)
-                                
+
 #                                 with col1:
 #                                     with open(filename, "rb") as file:
 #                                         file_data = file.read()
@@ -972,7 +972,7 @@
 #                                             file_name=filename,
 #                                             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 #                                         )
-                                
+
 #                                 # The email button uses the on_click parameter for the callback
 #                                 with col2:
 #                                     st.button("✉️ Send via Email", key="email_button_2", on_click=show_email_form)
@@ -984,7 +984,7 @@
 # if st.session_state.email_form_visible and st.session_state.current_doc_filename:
 #     # Create a container with a border to make it stand out
 #     email_container = st.container()
-    
+
 #     with email_container:
 #         st.markdown("""
 #         <style>
@@ -1000,13 +1000,13 @@
 #         <h3>✉️ Send Document via Email</h3>
 #         </div>
 #         """, unsafe_allow_html=True)
-        
+
 #         # Email input field
 #         recipient_email = st.text_input("Enter recipient's email address:", key="email_recipient_input")
-        
+
 #         # Create columns for send and cancel buttons
 #         button_col1, button_col2, button_col3 = st.columns([1, 1, 2])
-        
+
 #         with button_col1:
 #             if st.button("📨 Send Email", key="send_email_btn"):
 #                 if recipient_email:
@@ -1015,7 +1015,7 @@
 #                             recipient=recipient_email,
 #                             filename=st.session_state.current_doc_filename
 #                         )
-                        
+
 #                         if success:
 #                             st.success("✅ Email sent successfully!")
 #                             # Hide the form after successful sending
@@ -1025,7 +1025,7 @@
 #                             st.error(f"❌ Failed to send email: {message}")
 #                 else:
 #                     st.warning("⚠️ Please enter a recipient email address")
-                    
+
 #         with button_col2:
 #             if st.button("❌ Cancel", key="cancel_email_btn"):
 #                 st.session_state.email_form_visible = False
