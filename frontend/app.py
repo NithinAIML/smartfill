@@ -54,7 +54,12 @@ def show_login_page():
 
     # Load and convert the image to base64
     def get_base64_image(image_path):
-        img = Image.open(image_path)
+        import os
+        # Get the directory of the current script
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Construct the full path to the image
+        full_path = os.path.join(current_dir, image_path)
+        img = Image.open(full_path)
         buffered = BytesIO()
         img.save(buffered, format="PNG")  # or JPEG
         img_b64 = base64.b64encode(buffered.getvalue()).decode()
@@ -107,11 +112,12 @@ def show_login_page():
 
 # If not logged in, show login page
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state.logged_in = True  # Bypass login for demo
 
-if not st.session_state.logged_in:
-    show_login_page()
-    st.stop()
+# Temporarily bypass login to show the main app
+# if not st.session_state.logged_in:
+#     show_login_page()
+#     st.stop()
 
 st.set_page_config(page_title="SMARTFILL AI", layout="wide")
 
